@@ -1,0 +1,88 @@
+<!-- Chat Management Module for PaglaChat Admin -->
+<div id="tab-chat" class="tab-content hidden space-y-4">
+    <div class="flex h-[70vh] bg-gray-900 border border-purple-700 rounded-xl overflow-hidden">
+        <!-- Chat List Side -->
+        <div class="w-1/3 border-r border-purple-700 overflow-y-auto" id="chat-list">
+            <p class="p-4 text-gray-400 text-sm">Loading chats...</p>
+        </div>
+        <!-- Active Chat Window -->
+        <div class="w-2/3 flex flex-col">
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <p class="text-gray-500 text-center mt-10">কোনো চ্যাট সিলেক্ট করুন রিপ্লাই দেওয়ার জন্য।</p>
+            </div>
+            <div class="p-4 border-t border-purple-700 flex space-x-2">
+                <input type="text" id="admin-reply-input" class="flex-1 bg-gray-800 border border-purple-600 rounded-lg p-2 text-white" placeholder="রিপ্লাই লিখুন...">
+                <button onclick="sendAdminReply()" class="bg-gold-text text-gray-950 font-bold px-6 py-2 rounded-lg">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeChatId = "";
+
+    // চ্যাট লিস্ট লোড করার ফাংশন
+    function loadChatThreads() {
+        const list = document.getElementById('chat-list');
+        // 'chats' কালেকশন থেকে যেখানে 'paglachat_official' আছে
+        db.collection("chats")
+          .where("participants", "array-contains", "paglachat_official")
+          .orderBy("lastMessageTimestamp", "desc")
+          .onSnapshot(snapshot => {
+            list.innerHTML = "";
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                list.innerHTML += `
+                    <div onclick="openChat('${doc.id}')" class="p-4 border-b border-purple-800 hover:bg-purple-900 cursor-pointer transition">
+                        <h4 class="text-white font-bold text-sm">${data.lastSenderName || 'User'}</h4>
+                        <p class="text-gray-400 text-xs truncate">${data.lastMessage || ''}</p>
+                    </div>
+                `;
+            });
+        });
+    }
+
+    // নির্দিষ্ট চ্যাট ওপেন করা
+    function openChat(chatId) {
+        activeChatId = chatId;
+        const msgDiv = document.getElementById('chat-messages');
+        msgDiv.innerHTML = "Loading messages...";
+
+        db.collection("chats").doc(chatId).collection("messages")
+          .orderBy("timestamp", "asc")
+          .onSnapshot(snapshot => {
+            msgDiv.innerHTML = "";
+            snapshot.forEach(doc => {
+                const m = doc.data();
+                const isMine = m.senderId === "paglachat_official";
+                msgDiv.innerHTML += `
+                    <div class="${isMine ? 'text-right' : 'text-left'}">
+                        <div class="inline-block px-4 py-2 rounded-lg ${isMine ? 'bg-gold-text text-gray-950' : 'bg-purple-800 text-white'}">
+                            ${m.message}
+                        </div>
+                    </div>
+                `;
+            });
+            msgDiv.scrollTop = msgDiv.scrollHeight;
+        });
+    }
+
+    // অ্যাডমিন হিসেবে রিপ্লাই পাঠানো
+    function sendAdminReply() {
+        const text = document.getElementById('admin-reply-input').value;
+        if (!activeChatId || !text) return;
+
+        db.collection("chats").doc(activeChatId).collection("messages").add({
+            senderId: "paglachat_official",
+            message: text,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        db.collection("chats").doc(activeChatId).update({
+            lastMessage: text,
+            lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        document.getElementById('admin-reply-input').value = "";
+    }
+</script>
