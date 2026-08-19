@@ -147,30 +147,40 @@
                     </div>
                 </div>
 
-               <!-- TAB 6: CHAT MANAGEMENT (Optimized Layout) -->
+               <!-- TAB 6: CHAT MANAGEMENT (Natural Flow Layout) -->
 <div id="tab-chat" class="tab-content hidden space-y-4">
     <div class="flex h-[75vh] bg-gray-900 border border-purple-700 rounded-xl overflow-hidden shadow-2xl">
         
-        <!-- চ্যাট লিস্ট -->
+        <!-- চ্যাট লিস্ট (বাম পাশ) -->
         <div class="w-1/3 border-r border-purple-700 overflow-y-auto bg-gray-950/50" id="chat-list">
-            <!-- লিস্ট এখানে লোড হবে -->
+            <p class="p-4 text-gray-400 text-sm">Loading chats...</p>
         </div>
         
-        <!-- চ্যাট এরিয়া -->
-        <div class="w-2/3 flex flex-col bg-gray-950">
-            <!-- মেসেজ কন্টেইনার (এটি ফ্লেক্সিবল) -->
-            <div id="chat-messages-container" class="flex flex-col flex-1 overflow-hidden">
-                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
-                    <!-- মেসেজগুলো এখানে থাকবে -->
-                    <p class="text-gray-500 text-center text-sm pt-20">ইউজার সিলেক্ট করুন</p>
+        <!-- চ্যাট উইন্ডো ট্যাব (ডান পাশ - পুরোটা স্বাভাবিক ফ্লো ও স্ক্রোলযোগ্য) -->
+        <div class="w-2/3 flex flex-col bg-gray-950 overflow-y-auto relative p-4" id="chat-pane-wrapper">
+            
+            <!-- ডিফল্ট মেসেজ (চ্যাট সিলেক্ট করার আগে) -->
+            <div id="chat-placeholder" class="m-auto text-center text-gray-500 text-sm">
+                কোনো ইউজারের আইডি ক্লিক করুন চ্যাট ও রিপ্লাই দেওয়ার জন্য।
+            </div>
+
+            <!-- সিলেক্টেড ইউজারের চ্যাট কন্টেইনার -->
+            <div id="active-chat-content" class="flex flex-col space-y-3 hidden">
+                <!-- চ্যাট হেডার -->
+                <div class="text-yellow-500 font-bold text-sm border-b border-purple-800 pb-2 mb-2 sticky top-0 bg-gray-950 z-10" id="chat-header-title">
+                    Chat
                 </div>
                 
-                <!-- ইনপুট বক্স এখন মেসেজের ঠিক নিচে থাকবে -->
-                <div id="chat-input-container" class="p-4 border-t border-purple-700 bg-gray-900 flex space-x-2 hidden">
-                    <input type="text" id="admin-reply-input" class="flex-1 bg-gray-800 border border-purple-600 rounded-lg p-2 text-white text-sm focus:outline-none" placeholder="রিপ্লাই লিখুন...">
-                    <button onclick="sendAdminReply()" class="bg-yellow-600 text-black font-bold px-6 py-2 rounded-lg text-sm">Send</button>
+                <!-- মেসেজগুলো এখানে সিকোয়েন্স অনুযায়ী থাকবে -->
+                <div id="chat-messages" class="space-y-3 flex flex-col"></div>
+                
+                <!-- ইনপুট বক্স: ঠিক লাস্ট মেসেজের নিচেই থাকবে, কোনো খালি জায়গা থাকবে না -->
+                <div id="chat-input-container" class="mt-4 pt-3 border-t border-purple-800 flex space-x-2 bg-gray-900 p-3 rounded-lg">
+                    <input type="text" id="admin-reply-input" class="flex-1 bg-gray-800 border border-purple-600 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-yellow-500" placeholder="রিপ্লাই লিখুন...">
+                    <button onclick="sendAdminReply()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-950 font-bold px-5 py-2 rounded-lg text-sm transition">Send</button>
                 </div>
             </div>
+            
         </div>
     </div>
 </div>
