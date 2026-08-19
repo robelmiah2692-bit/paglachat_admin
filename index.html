@@ -470,45 +470,72 @@
             }
         }
 
-        // ব্রডকাস্ট মেসেজ সিস্টেম আপডেট করা হয়েছে যাতে নোটিফিকেশন এবং চ্যাট লিস্ট উভয় জায়গায় মেসেজ চলে যায়
-        function sendBroadcast() {
+        async function sendBroadcast() {
             const senderId = document.getElementById('broadcast-sender').value;
             const title = document.getElementById('broadcast-title').value;
             const body = document.getElementById('broadcast-body').value;
 
             if (!title || !body) {
-                alert("Please fill in both title and body!");
+                alert("দয়া করে টাইটেল এবং মেসেজ লিখুন!");
                 return;
             }
 
-            if (confirm("Are you sure you want to send this broadcast message to all users?")) {
-                const batch = db.batch();
+            if (confirm("আপনি কি নিশ্চিত যে সকল ইউজারের ইনবক্সে এই ব্রডকাস্ট মেসেজটি পাঠাতে চান?")) {
+                try {
+                    const usersSnapshot = await db.collection("users").get();
+                    if (usersSnapshot.empty) {
+                        alert("কোনো ইউজার পাওয়া যায়নি!");
+                        return;
+                    }
 
-                // ১. নোটিফিকেশন কালেকশনে যোগ করা
-                const notifRef = db.collection("notifications").doc();
-                batch.set(notifRef, {
-                    senderId: senderId,
-                    title: title,
-                    body: body,
-                    type: "broadcast",
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                    const fullMessageText = `${title}: ${body}`;
+                    let batch = db.batch();
+                    let operationCount = 0;
 
-                // ২. গ্লোবাল চ্যাট লিস্টের জন্য চ্যাট মেসেজ হিসেবে যোগ করা যাতে ইউজারদের চ্যাট লিস্টেও শো করে
-                const chatRef = db.collection("chats").doc();
-                batch.set(chatRef, {
-                    senderId: senderId,
-                    receiverId: "all",
-                    message: `${title}: ${body}`,
-                    type: "broadcast",
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                    for (const userDoc of usersSnapshot.docs) {
+                        const userData = userDoc.data();
+                        const userId = userData.uiD || userDoc.id;
+                        
+                        if (!userId || userId === senderId) continue;
 
-                batch.commit().then(() => {
-                    alert("Broadcast message sent successfully to all users and chat lists!");
+                        const chatId = `${senderId}_${userId}`;
+                        const chatRef = db.collection("chats").doc(chatId);
+                        const messageRef = chatRef.collection("messages").doc();
+
+                        batch.set(chatRef, {
+                            lastMessage: fullMessageText,
+                            lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            [`unReadCount_${userId}`]: firebase.firestore.FieldValue.increment(1)
+                        }, { merge: true });
+
+                        batch.set(messageRef, {
+                            senderId: senderId,
+                            receiverId: userId,
+                            message: fullMessageText,
+                            type: "broadcast",
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        operationCount += 2;
+
+                        if (operationCount >= 450) {
+                            await batch.commit();
+                            batch = db.batch();
+                            operationCount = 0;
+                        }
+                    }
+
+                    if (operationCount > 0) {
+                        await batch.commit();
+                    }
+
+                    alert("সফলভাবে সকল ইউজারের চ্যাট ইনবক্সে ব্রডকাস্ট মেসেজ পাঠানো হয়েছে!");
                     document.getElementById('broadcast-title').value = "";
                     document.getElementById('broadcast-body').value = "";
-                }).catch(err => alert("Error: " + err.message));
+
+                } catch (err) {
+                    alert("ত্রুটি: " + err.message);
+                }
             }
         }
     </script>
