@@ -147,7 +147,7 @@
                     </div>
                 </div>
 
-              <!-- TAB 6: CHAT MANAGEMENT -->
+             <!-- TAB 6: CHAT MANAGEMENT -->
 <div id="tab-chat" class="tab-content hidden space-y-4">
     <div class="flex h-[75vh] bg-gray-900 border border-purple-700 rounded-xl overflow-hidden shadow-2xl">
         
@@ -157,25 +157,25 @@
         </div>
         
         <!-- চ্যাট উইন্ডো (ডান পাশ - ন্যাচারাল স্ক্রোল) -->
-        <div class="w-2/3 bg-gray-950 overflow-y-auto p-4" id="chat-pane-wrapper">
+        <div class="w-2/3 bg-gray-950 overflow-y-auto p-4 relative" id="chat-pane-wrapper">
             
             <!-- ডিফল্ট মেসেজ (চ্যাট সিলেক্ট না করলে দেখাবে) -->
             <div id="chat-placeholder" class="flex items-center justify-center h-full text-gray-500 text-sm">
-                কোনো ইউজারের আইডি ক্লিক করুন চ্যাট ও রিপ্লাই দেওয়ার জন্য।
+                কোনো ইউজারের আইডি ক্লিক করুন চ্যাট ও রিপ্লাই দেওয়ার জন্য।
             </div>
 
-            <!-- সিলেক্টেড ইউজারের চ্যাট কন্টেইনার -->
+            <!-- সিলেক্টেড ইউজারের চ্যাট কন্টেইনার (শুরুতে hidden থাকবে) -->
             <div id="active-chat-content" class="hidden">
                 <!-- চ্যাট হেডার -->
-                <div class="text-yellow-500 font-bold text-sm border-b border-purple-800 pb-2 mb-3" id="chat-header-title">
+                <div class="text-yellow-500 font-bold text-sm border-b border-purple-800 pb-2 mb-3 sticky top-0 bg-gray-950 z-10" id="chat-header-title">
                     Chat
                 </div>
                 
                 <!-- মেসেজগুলো এখানে সিকোয়েন্স অনুযায়ী থাকবে -->
-                <div id="chat-messages" class="space-y-3 mb-4"></div>
+                <div id="chat-messages" class="space-y-3 mb-4 flex flex-col"></div>
                 
-                <!-- ইনপুট বক্স: ঠিক লাস্ট মেসেজের নিচেই থাকবে, কোনো খালি জায়গা থাকবে না -->
-                <div id="chat-input-container" class="border border-purple-700 bg-gray-900 p-3 rounded-lg flex space-x-2">
+                <!-- ইনপুট বক্স: ঠিক লাস্ট মেসেজের নিচেই থাকবে -->
+                <div id="chat-input-container" class="border border-purple-700 bg-gray-900 p-3 rounded-lg flex space-x-2 mt-4">
                     <input type="text" id="admin-reply-input" class="flex-1 bg-gray-800 border border-purple-600 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-yellow-500" placeholder="রিপ্লাই লিখুন...">
                     <button onclick="sendAdminReply()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-950 font-bold px-5 py-2 rounded-lg text-sm transition">Send</button>
                 </div>
