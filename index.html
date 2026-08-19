@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaglaChat Admin Panel</title>
+    <!-- Tailwind CSS for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 p-6">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold mb-4 text-purple-700">PaglaChat Admin Panel</h1>
+
+        <!-- Login Section with Google Button -->
+        <div id="login-section" class="mb-6 text-center py-10">
+            <h2 class="text-xl font-semibold mb-4">Owner Authentication</h2>
+            <p class="text-sm text-gray-600 mb-6">অ্যাডমিন প্যানেলে প্রবেশ করতে আপনার নির্দিষ্ট গুগল অ্যাকাউন্ট দিয়ে লগইন করুন।</p>
+            <button onclick="loginWithGoogle()" class="bg-white border border-gray-300 shadow-sm px-6 py-3 rounded-lg flex items-center justify-center mx-auto hover:bg-gray-50 transition">
+                <span class="font-medium text-gray-700">Sign in with Google</span>
+            </button>
+        </div>
+
+        <!-- Dashboard Section (Hidden by default) -->
+        <div id="dashboard-section" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">User List & Data</h2>
+                <button onclick="logoutAdmin()" class="bg-red-500 text-white px-3 py-1 rounded">Logout</button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200">
+                    <thead>
+                        <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                            <th class="py-3 px-6 text-left">User ID / Name</th>
+                            <th class="py-3 px-6 text-left">Email</th>
+                            <th class="py-3 px-6 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body" class="text-gray-600 text-sm font-light">
+                        <!-- Users will be loaded here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase App (Compat Version for Easy Setup) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // ফায়ারবেস কনফিগারেশন
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9KMdtIBNVYSASc5C2w5JGVTL-NISXFog",
+            authDomain: "paglachat.firebaseapp.com",
+            projectId: "paglachat",
+            storageBucket: "paglachat.firebasestorage.app",
+            messagingSenderId: "25052070011",
+            appId: "1:25052070011:web:7c447f8d011fbdf3d662de"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // আপনার আসল ওনার জিমেইল
+        const OWNER_EMAIL = "robelmiah2692@gmail.com";
+
+        function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    
+                    // চেক করা হচ্ছে জিমেইলটি আপনার কি না
+                    if (user.email === OWNER_EMAIL) {
+                        alert("Login Successful, Welcome Owner!");
+                        checkAdminAccess(user);
+                    } else {
+                        alert("Access Denied! You are not the owner.");
+                        auth.signOut(); // আপনি ছাড়া অন্য কেউ হলে সাথে সাথে সাইন আউট করে দিবে
+                    }
+                })
+                .catch((error) => {
+                    alert("Error: " + error.message);
+                });
+        }
+
+        function checkAdminAccess(user) {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('dashboard-section').classList.remove('hidden');
+            loadUsers();
+        }
+
+        function logoutAdmin() {
+            auth.signOut().then(() => {
+                document.getElementById('dashboard-section').classList.add('hidden');
+                document.getElementById('login-section').classList.remove('hidden');
+            });
+        }
+
+        function loadUsers() {
+            const tableBody = document.getElementById('user-table-body');
+            tableBody.innerHTML = "";
+
+            db.collection("users").get().then((querySnapshot) => {
+                querySnapshot.forEach((devDoc) => {
+                    const userData = devDoc.data();
+                    const row = `<tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6 text-left">${userData.name || devDoc.id}</td>
+                        <td class="py-3 px-6 text-left">${userData.email || 'N/A'}</td>
+                        <td class="py-3 px-6 text-center">
+                            <button onclick="deleteUser('${devDoc.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Delete</button>
+                        </td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                });
+            });
+        }
+
+        function deleteUser(userId) {
+            if (confirm("Are you sure to delete this user?")) {
+                db.collection("users").doc(userId).delete().then(() => {
+                    alert("User deleted!");
+                    loadUsers();
+                }).catch((error) => {
+                    alert("Error removing user: " + error);
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>
