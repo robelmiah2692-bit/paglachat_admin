@@ -1,4 +1,4 @@
-<!-- TAB 6: CHAT MANAGEMENT (Natural Flow Layout) -->
+<!-- TAB 6: CHAT MANAGEMENT -->
 <div id="tab-chat" class="tab-content hidden space-y-4">
     <div class="flex h-[75vh] bg-gray-900 border border-purple-700 rounded-xl overflow-hidden shadow-2xl">
         
@@ -7,26 +7,26 @@
             <p class="p-4 text-gray-400 text-sm">Loading chats...</p>
         </div>
         
-        <!-- চ্যাট উইন্ডো ট্যাব (ডান পাশ - পুরোটা স্বাভাবিক ফ্লো ও স্ক্রোলযোগ্য) -->
-        <div class="w-2/3 flex flex-col bg-gray-950 overflow-y-auto relative p-4" id="chat-pane-wrapper">
+        <!-- চ্যাট উইন্ডো (ডান পাশ - ন্যাচারাল স্ক্রোল) -->
+        <div class="w-2/3 bg-gray-950 overflow-y-auto p-4" id="chat-pane-wrapper">
             
-            <!-- ডিফল্ট মেসেজ (চ্যাট সিলেক্ট করার আগে) -->
-            <div id="chat-placeholder" class="m-auto text-center text-gray-500 text-sm">
+            <!-- ডিফল্ট মেসেজ (চ্যাট সিলেক্ট না করলে দেখাবে) -->
+            <div id="chat-placeholder" class="flex items-center justify-center h-full text-gray-500 text-sm">
                 কোনো ইউজারের আইডি ক্লিক করুন চ্যাট ও রিপ্লাই দেওয়ার জন্য।
             </div>
 
             <!-- সিলেক্টেড ইউজারের চ্যাট কন্টেইনার -->
-            <div id="active-chat-content" class="flex flex-col space-y-3 hidden">
+            <div id="active-chat-content" class="hidden">
                 <!-- চ্যাট হেডার -->
-                <div class="text-yellow-500 font-bold text-sm border-b border-purple-800 pb-2 mb-2 sticky top-0 bg-gray-950 z-10" id="chat-header-title">
+                <div class="text-yellow-500 font-bold text-sm border-b border-purple-800 pb-2 mb-3" id="chat-header-title">
                     Chat
                 </div>
                 
                 <!-- মেসেজগুলো এখানে সিকোয়েন্স অনুযায়ী থাকবে -->
-                <div id="chat-messages" class="space-y-3 flex flex-col"></div>
+                <div id="chat-messages" class="space-y-3 mb-4"></div>
                 
                 <!-- ইনপুট বক্স: ঠিক লাস্ট মেসেজের নিচেই থাকবে, কোনো খালি জায়গা থাকবে না -->
-                <div id="chat-input-container" class="mt-4 pt-3 border-t border-purple-800 flex space-x-2 bg-gray-900 p-3 rounded-lg">
+                <div id="chat-input-container" class="border border-purple-700 bg-gray-900 p-3 rounded-lg flex space-x-2">
                     <input type="text" id="admin-reply-input" class="flex-1 bg-gray-800 border border-purple-600 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-yellow-500" placeholder="রিপ্লাই লিখুন...">
                     <button onclick="sendAdminReply()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-950 font-bold px-5 py-2 rounded-lg text-sm transition">Send</button>
                 </div>
@@ -48,7 +48,7 @@
           .onSnapshot(snapshot => {
             list.innerHTML = "";
             if (snapshot.empty) {
-                list.innerHTML = `<p class="p-4 text-gray-400 text-sm">কোনো চ্যাট পাওয়া যায়নি।</p>`;
+                list.innerHTML = `<p class="p-4 text-gray-400 text-sm">কোনো চ্যাট পাওয়া যায়নি।</p>`;
                 return;
             }
             snapshot.forEach(doc => {
@@ -68,15 +68,14 @@
         });
     }
 
-    // নির্দিষ্ট চ্যাট ওপেন করা এবং ট্যাব স্টাইলে মেসেজ ও ইনপুট দেখানো
+    // নির্দিষ্ট চ্যাট ওপেন করা
     function openChat(chatId, userId) {
         activeChatId = chatId;
         activeUserId = userId;
         
-        // প্লেসহোল্ডার লুকিয়ে চ্যাট ট্যাব দৃশ্যমান করা
+        // প্লেসহোল্ডার লুকিয়ে মেইন চ্যাট কন্টেইনার এবং ইনপুট বক্স দৃশ্যমান করা
         document.getElementById('chat-placeholder').classList.add('hidden');
-        const activeContent = document.getElementById('active-chat-content');
-        activeContent.classList.remove('hidden');
+        document.getElementById('active-chat-content').classList.remove('hidden');
         
         document.getElementById('chat-header-title').innerText = `User ID: ${userId} - Live Chat`;
         
@@ -102,13 +101,13 @@
                     </div>
                 `;
             });
-            // পুরো চ্যাট প্যানেলটি স্ক্রল করে একদম নিচে (ইনপুট বক্স পর্যন্ত) নিয়ে যাবে
+            // প্যানেল স্ক্রল করে একদম নিচে ইনপুট বক্স পর্যন্ত নিয়ে যাওয়া
             const pane = document.getElementById('chat-pane-wrapper');
             pane.scrollTop = pane.scrollHeight;
         });
     }
 
-    // অ্যাডমিন হিসেবে নির্দিষ্ট ইউজারকে রিপ্লাই পাঠানো
+    // অ্যাডমিন হিসেবে রিপ্লাই পাঠানো
     function sendAdminReply() {
         const inputField = document.getElementById('admin-reply-input');
         const text = inputField.value.trim();
