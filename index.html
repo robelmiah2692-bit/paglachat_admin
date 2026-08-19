@@ -34,7 +34,7 @@
             <div class="mb-6">
                 <i class="fa-solid fa-crown gold-text text-5xl mb-3"></i>
                 <h1 class="text-3xl font-bold text-white">PaglaChat Owner</h1>
-                <p class="text-sm text-gray-400 mt-2">অ্যাডমিন প্যানেলে প্রবেশ করতে আপনার ওনার জিমেইল দিয়ে লগইন করুন</p>
+                <p class="text-sm text-gray-400 mt-2">অ্যাডমিন প্যানেলে প্রবেশ করতে আপনার ওনার জিমেইল দিয়ে লগইন করুন</p>
             </div>
             <button onclick="loginWithGoogle()" class="w-full bg-white text-gray-900 font-semibold py-3 px-4 rounded-lg shadow hover:bg-gray-100 transition flex items-center justify-center space-x-2">
                 <i class="fa-brands fa-google text-red-500"></i>
@@ -97,7 +97,7 @@
                         <button onclick="searchSpecificRoom()" class="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition">Search Room</button>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="rooms-card-grid">
-                        <p class="text-gray-400 text-sm">রুম আইডি দিয়ে সার্চ করুন।</p>
+                        <p class="text-gray-400 text-sm">রুম আইডি দিয়ে সার্চ করুন।</p>
                     </div>
                 </div>
 
@@ -201,7 +201,6 @@
         function checkAdminAccess() {
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('dashboard-section').classList.remove('hidden');
-            // লগইন করার পর অটো কোনো ডেটা লোড হবে না, হং হওয়া থেকে সম্পূর্ণ মুক্ত রাখতে শুধু ইউজার ট্যাব সিলেক্ট থাকবে
             switchTab('users');
         }
 
@@ -231,17 +230,15 @@
             };
             document.getElementById('page-title').innerText = titles[tabName];
 
-            // শুধুমাত্র যেই ট্যাবে ক্লিক করা হবে, শুধু সেইটার ডেটাই ফেচ হবে (অন্য ট্যাব টোটাল বন্ধ থাকবে)
             if (tabName === 'blocked') {
                 loadBlockedDevices();
             }
         }
 
-        // ১. ইউজার সার্চ করে ডেটা আনা (একসাথে সব ইউজার এনে ল্যাপটপ হং হওয়া আটকানোর জন্য)
         function searchSpecificUser() {
             const queryVal = document.getElementById('user-search-input').value.trim();
             if (!queryVal) {
-                alert("দয়া করে ইউজার আইডি বা নাম লিখুন!");
+                alert("দয়া করে ইউজার আইডি বা নাম লিখুন!");
                 return;
             }
             const grid = document.getElementById('users-card-grid');
@@ -249,12 +246,11 @@
 
             db.collection("users").where("uiD", "==", queryVal).get().then((snapshot) => {
                 if (snapshot.empty) {
-                    // Try searching by document id or name if uiD fails
                     db.collection("users").doc(queryVal).get().then(doc => {
                         if(doc.exists) {
                             renderSingleUser(doc.id, doc.data());
                         } else {
-                            grid.innerHTML = `<p class="text-red-400 text-sm">কোনো ইউজার পাওয়া যায়নি!</p>`;
+                            grid.innerHTML = `<p class="text-red-400 text-sm">কোনো ইউজার পাওয়া যায়নি!</p>`;
                         }
                     });
                 } else {
@@ -298,11 +294,10 @@
             `;
         }
 
-        // ২. রুম সার্চ করে ডেটা আনা
         function searchSpecificRoom() {
             const roomIdVal = document.getElementById('room-search-input').value.trim();
             if (!roomIdVal) {
-                alert("দয়া করে রুম আইডি লিখুন!");
+                alert("দয়া করে রুম আইডি লিখুন!");
                 return;
             }
             const grid = document.getElementById('rooms-card-grid');
@@ -314,7 +309,7 @@
                         if(doc.exists) {
                             renderSingleRoom(doc.id, doc.data());
                         } else {
-                            grid.innerHTML = `<p class="text-red-400 text-sm">কোনো রুম পাওয়া যায়নি!</p>`;
+                            grid.innerHTML = `<p class="text-red-400 text-sm">কোনো রুম পাওয়া যায়নি!</p>`;
                         }
                     });
                 } else {
@@ -352,7 +347,6 @@
             `;
         }
 
-        // ৩. ব্লকড ডিভাইস ট্যাবে ক্লিক করলে লোড হওয়া
         function loadBlockedDevices() {
             const grid = document.getElementById('blocked-card-grid');
             grid.innerHTML = `<p class="text-yellow-400 text-sm">Loading...</p>`;
@@ -376,14 +370,13 @@
             });
         }
 
-        // ৪. রিচার্জ হিস্ট্রি শুধুমাত্র বাটনে ক্লিক করলে সীমিত আকারে লোড হওয়া
         function loadRechargeHistory() {
             const grid = document.getElementById('recharge-card-grid');
             grid.innerHTML = `<p class="text-yellow-400 text-sm">Loading History...</p>`;
             db.collection("diamond_history").limit(20).get().then((snapshot) => {
                 grid.innerHTML = "";
                 if(snapshot.empty) {
-                    grid.innerHTML = `<p class="text-gray-400 text-sm">কোনো হিস্ট্রি পাওয়া যায়নি।</p>`;
+                    grid.innerHTML = `<p class="text-gray-400 text-sm">কোনো হিস্ট্রি পাওয়া যায়নি।</p>`;
                     return;
                 }
                 snapshot.forEach((doc) => {
@@ -477,6 +470,7 @@
             }
         }
 
+        // ব্রডকাস্ট মেসেজ সিস্টেম আপডেট করা হয়েছে যাতে নোটিফিকেশন এবং চ্যাট লিস্ট উভয় জায়গায় মেসেজ চলে যায়
         function sendBroadcast() {
             const senderId = document.getElementById('broadcast-sender').value;
             const title = document.getElementById('broadcast-title').value;
@@ -487,15 +481,31 @@
                 return;
             }
 
-            if (confirm("Are you sure you want to send this broadcast message?")) {
-                db.collection("notifications").add({
+            if (confirm("Are you sure you want to send this broadcast message to all users?")) {
+                const batch = db.batch();
+
+                // ১. নোটিফিকেশন কালেকশনে যোগ করা
+                const notifRef = db.collection("notifications").doc();
+                batch.set(notifRef, {
                     senderId: senderId,
                     title: title,
                     body: body,
                     type: "broadcast",
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                }).then(() => {
-                    alert("Broadcast message sent successfully!");
+                });
+
+                // ২. গ্লোবাল চ্যাট লিস্টের জন্য চ্যাট মেসেজ হিসেবে যোগ করা যাতে ইউজারদের চ্যাট লিস্টেও শো করে
+                const chatRef = db.collection("chats").doc();
+                batch.set(chatRef, {
+                    senderId: senderId,
+                    receiverId: "all",
+                    message: `${title}: ${body}`,
+                    type: "broadcast",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                batch.commit().then(() => {
+                    alert("Broadcast message sent successfully to all users and chat lists!");
                     document.getElementById('broadcast-title').value = "";
                     document.getElementById('broadcast-body').value = "";
                 }).catch(err => alert("Error: " + err.message));
