@@ -43,7 +43,7 @@
         </div>
     </div>
 
-    <!-- Dashboard Section (Hidden by default) -->
+    <!-- Dashboard Section -->
     <div id="dashboard-section" class="hidden flex h-screen overflow-hidden">
         
         <!-- Sidebar Navigation -->
@@ -86,29 +86,35 @@
 
                 <!-- TAB 1: USERS -->
                 <div id="tab-users" class="tab-content space-y-4">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <input type="text" id="user-search" oninput="filterUsers()" placeholder="Search by User ID / uiD / Name..." class="w-full max-w-md bg-gray-900 border border-purple-700 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-gold-text">
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="users-card-grid">
-                        <!-- Dynamic User Cards will load here -->
+                        <!-- Dynamic User Cards -->
                     </div>
                 </div>
 
                 <!-- TAB 2: ROOMS -->
                 <div id="tab-rooms" class="tab-content hidden space-y-4">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <input type="text" id="room-search" oninput="filterRooms()" placeholder="Search by Room ID / Room Name..." class="w-full max-w-md bg-gray-900 border border-purple-700 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-gold-text">
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="rooms-card-grid">
-                        <!-- Dynamic Rooms Cards will load here -->
+                        <!-- Dynamic Rooms Cards -->
                     </div>
                 </div>
 
                 <!-- TAB 3: BLOCKED DEVICES -->
                 <div id="tab-blocked" class="tab-content hidden space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="blocked-card-grid">
-                        <!-- Dynamic Blocked Devices Cards will load here -->
+                        <!-- Dynamic Blocked Devices Cards -->
                     </div>
                 </div>
 
                 <!-- TAB 4: RECHARGE HISTORY -->
                 <div id="tab-recharge" class="tab-content hidden space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="recharge-card-grid">
-                        <!-- Dynamic Recharge History Cards will load here -->
+                        <!-- Dynamic Recharge History Cards -->
                     </div>
                 </div>
 
@@ -117,6 +123,13 @@
                     <div class="royal-gradient border gold-border p-6 rounded-xl shadow-lg">
                         <h3 class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-paper-plane mr-2 gold-text"></i>Send Announcement to All Users</h3>
                         <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Sender Official ID</label>
+                                <select id="broadcast-sender" class="w-full bg-gray-900 border border-purple-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-text">
+                                    <option value="paglachat_official">paglachat_official</option>
+                                    <option value="978051">978051 (King Hridoy)</option>
+                                </select>
+                            </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-1">Message Title</label>
                                 <input type="text" id="broadcast-title" class="w-full bg-gray-900 border border-purple-700 rounded-lg p-3 text-white focus:outline-none focus:border-gold-text" placeholder="যেমন: জরুরি নোটিশ!">
@@ -133,6 +146,23 @@
                 </div>
 
             </main>
+        </div>
+    </div>
+
+    <!-- Edit Modal for Users/Rooms -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center p-4 z-50">
+        <div class="royal-gradient border gold-border rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="text-lg font-bold text-white">Edit Record</h3>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div id="modal-body" class="space-y-3 text-xs">
+                <!-- Dynamic inputs will load here -->
+            </div>
+            <div class="mt-6 flex space-x-3">
+                <button onclick="saveModalData()" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-gray-950 font-bold py-2 rounded-lg transition">Save Changes</button>
+                <button onclick="closeEditModal()" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -156,6 +186,9 @@
         const db = firebase.firestore();
 
         const OWNER_EMAIL = "robelmiah2692@gmail.com";
+        let allUsersCache = [];
+        let allRoomsCache = [];
+        let currentEditDoc = { collection: '', id: '', data: {} };
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -178,11 +211,12 @@
         function logoutAdmin() {
             auth.signOut().then(() => {
                 document.getElementById('dashboard-section').classList.add('hidden');
+                document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('login-section').classList.remove('hidden');
+                location.reload();
             });
         }
 
-        // Tab Switching Logic
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
@@ -204,100 +238,52 @@
             document.getElementById('page-title').innerText = titles[tabName];
         }
 
-        // Realtime Data Loading Function
         function loadAllDataRealtime() {
-            // 1. Users & Online Count Realtime
+            // 1. Users Data
             db.collection("users").onSnapshot((snapshot) => {
-                const grid = document.getElementById('users-card-grid');
-                grid.innerHTML = "";
+                allUsersCache = [];
                 let onlineCount = 0;
-
                 snapshot.forEach((doc) => {
-                    const u = doc.data();
-                    if (u.isOnline === true) onlineCount++;
-
-                    const card = `
-                        <div class="royal-gradient border gold-border rounded-xl p-4 shadow-md flex flex-col justify-between">
-                            <div>
-                                <div class="flex items-center space-x-3 mb-3">
-                                    <img src="${u.profilePic || 'https://via.placeholder.com/50'}" class="w-12 h-12 rounded-full border-2 gold-border object-cover">
-                                    <div>
-                                        <h4 class="font-bold text-white text-base">${u.name || 'No Name'}</h4>
-                                        <span class="text-xs px-2 py-0.5 rounded ${u.isOnline ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'}">${u.isOnline ? 'Online' : 'Offline'}</span>
-                                    </div>
-                                </div>
-                                <div class="text-xs space-y-1 text-gray-300 bg-gray-900/50 p-2.5 rounded-lg border border-purple-800">
-                                    <p><strong class="gold-text">Email:</strong> ${u.email || 'N/A'}</p>
-                                    <p><strong class="gold-text">uiD:</strong> ${u.uiD || doc.id}</p>
-                                    <p><strong class="gold-text">uid:</strong> ${u.uid || 'N/A'}</p>
-                                    <p><strong class="gold-text">authUID:</strong> ${u.authUID || 'N/A'}</p>
-                                    <p><strong class="gold-text">Diamonds:</strong> 💎 ${u.diamonds || 0}</p>
-                                    <p><strong class="gold-text">Device ID:</strong> ${u.deviceId || 'N/A'}</p>
-                                </div>
-                            </div>
-                            <div class="mt-4 flex space-x-2">
-                                <button onclick="blockDevice('${u.deviceId}')" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-gray-950 font-semibold py-1.5 rounded text-xs transition">Block Device</button>
-                                <button onclick="deleteUser('${doc.id}')" class="bg-red-600 hover:bg-red-700 text-white py-1.5 px-3 rounded text-xs transition"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>
-                    `;
-                    grid.innerHTML += card;
+                    allUsersCache.push({ id: doc.id, ...doc.data() });
+                    if (doc.data().isOnline === true) onlineCount++;
                 });
+                renderUsers(allUsersCache);
                 document.getElementById('live-user-count').innerText = onlineCount;
             });
 
-            // 2. Rooms Realtime
+            // 2. Rooms Data
             db.collection("rooms").onSnapshot((snapshot) => {
-                const grid = document.getElementById('rooms-card-grid');
-                grid.innerHTML = "";
+                allRoomsCache = [];
                 snapshot.forEach((doc) => {
-                    const r = doc.data();
-                    const card = `
-                        <div class="royal-gradient border gold-border rounded-xl p-4 shadow-md">
-                            <div class="flex justify-between items-center mb-2">
-                                <h4 class="font-bold text-white text-base">Room ID: ${doc.id}</h4>
-                                <span class="text-xs px-2 py-0.5 rounded ${r.isLive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}">${r.isLive ? 'Live' : 'Inactive'}</span>
-                            </div>
-                            <div class="text-xs space-y-1 text-gray-300 bg-gray-900/50 p-2.5 rounded-lg border border-purple-800">
-                                <p><strong class="gold-text">Daily Points:</strong> ${r.dailyPoints || 0}</p>
-                                <p><strong class="gold-text">Entry ID:</strong> ${r.lastEntry?.entryId || 'N/A'}</p>
-                            </div>
-                        </div>
-                    `;
-                    grid.innerHTML += card;
+                    allRoomsCache.push({ id: doc.id, ...doc.data() });
                 });
+                renderRooms(allRoomsCache);
             });
 
-            // 3. Blocked Devices Realtime
+            // 3. Blocked Devices
             db.collection("blocked_devices").onSnapshot((snapshot) => {
                 const grid = document.getElementById('blocked-card-grid');
                 grid.innerHTML = "";
                 snapshot.forEach((doc) => {
-                    const b = doc.data();
-                    const card = `
+                    grid.innerHTML += `
                         <div class="royal-gradient border border-red-800 rounded-xl p-4 shadow-md flex flex-col justify-between">
                             <div>
                                 <h4 class="font-bold text-red-400 text-base mb-2"><i class="fa-solid fa-ban mr-2"></i>Blocked Device</h4>
-                                <p class="text-xs text-gray-300 bg-gray-900/50 p-2.5 rounded-lg border border-red-900 break-all">
-                                    <strong class="text-white">Device ID:</strong> ${doc.id}
-                                </p>
+                                <p class="text-xs text-gray-300 bg-gray-900/50 p-2.5 rounded-lg border border-red-900 break-all"><strong class="text-white">Device ID:</strong> ${doc.id}</p>
                             </div>
-                            <div class="mt-4">
-                                <button onclick="unblockDevice('${doc.id}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-1.5 rounded text-xs transition">Unblock Device</button>
-                            </div>
+                            <div class="mt-4"><button onclick="unblockDevice('${doc.id}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-1.5 rounded text-xs transition">Unblock Device</button></div>
                         </div>
                     `;
-                    grid.innerHTML += card;
                 });
             });
 
-            // 4. Recharge History Realtime
+            // 4. Recharge History
             db.collection("diamond_history").onSnapshot((snapshot) => {
                 const grid = document.getElementById('recharge-card-grid');
                 grid.innerHTML = "";
                 snapshot.forEach((doc) => {
                     const d = doc.data();
-                    const card = `
+                    grid.innerHTML += `
                         <div class="royal-gradient border gold-border rounded-xl p-4 shadow-md">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-xs font-semibold gold-text">Type: ${d.type || 'N/A'}</span>
@@ -310,23 +296,145 @@
                             </div>
                         </div>
                     `;
-                    grid.innerHTML += card;
                 });
             });
         }
 
-        // Actions Control
-        function deleteUser(userId) {
-            if (confirm("Are you sure you want to delete this user?")) {
-                db.collection("users").doc(userId).delete().then(() => alert("User deleted successfully!"));
+        function renderUsers(users) {
+            const grid = document.getElementById('users-card-grid');
+            grid.innerHTML = "";
+            users.forEach((u) => {
+                grid.innerHTML += `
+                    <div class="royal-gradient border gold-border rounded-xl p-4 shadow-md flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-3">
+                                <img src="${u.profilePic || 'https://via.placeholder.com/50'}" class="w-12 h-12 rounded-full border-2 gold-border object-cover">
+                                <div>
+                                    <h4 class="font-bold text-white text-base">${u.name || 'No Name'}</h4>
+                                    <span class="text-xs px-2 py-0.5 rounded ${u.isOnline ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'}">${u.isOnline ? 'Online' : 'Offline'}</span>
+                                </div>
+                            </div>
+                            <div class="text-xs space-y-1 text-gray-300 bg-gray-900/50 p-2.5 rounded-lg border border-purple-800">
+                                <p><strong class="gold-text">uiD:</strong> ${u.uiD || u.id}</p>
+                                <p><strong class="gold-text">Name:</strong> ${u.name || 'N/A'}</p>
+                                <p><strong class="gold-text">Diamonds:</strong> 💎 ${u.diamonds || 0}</p>
+                                <p><strong class="gold-text">Agency Wallet:</strong> ${u.agency_wallet || 0}</p>
+                                <p><strong class="gold-text">Email:</strong> ${u.email || 'N/A'}</p>
+                                <p><strong class="gold-text">Device ID:</strong> ${u.deviceId || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex space-x-2">
+                            <button onclick="openEditModal('users', '${u.id}')" class="flex-1 bg-purple-700 hover:bg-purple-600 text-white font-semibold py-1.5 rounded text-xs transition">Edit All Data</button>
+                            <button onclick="blockDevice('${u.deviceId}')" class="bg-yellow-600 hover:bg-yellow-700 text-gray-950 font-semibold py-1.5 px-3 rounded text-xs transition">Block</button>
+                            <button onclick="deleteDoc('users', '${u.id}')" class="bg-red-600 hover:bg-red-700 text-white py-1.5 px-3 rounded text-xs transition"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderRooms(rooms) {
+            const grid = document.getElementById('rooms-card-grid');
+            grid.innerHTML = "";
+            rooms.forEach((r) => {
+                grid.innerHTML += `
+                    <div class="royal-gradient border gold-border rounded-xl p-4 shadow-md flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-white text-base">Room ID: ${r.roomId || r.id}</h4>
+                                <span class="text-xs px-2 py-0.5 rounded ${r.isLive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}">${r.isLive ? 'Live' : 'Inactive'}</span>
+                            </div>
+                            <div class="text-xs space-y-1 text-gray-300 bg-gray-900/50 p-2.5 rounded-lg border border-purple-800">
+                                <p><strong class="gold-text">Room Name:</strong> ${r.roomName || 'N/A'}</p>
+                                <p><strong class="gold-text">Owner Name:</strong> ${r.ownerName || 'N/A'}</p>
+                                <p><strong class="gold-text">Daily Points:</strong> ${r.dailyPoints || 0}</p>
+                                <p><strong class="gold-text">Total Diamonds:</strong> ${r.totalDiamonds || 0}</p>
+                                <p><strong class="gold-text">Viewer Count:</strong> ${r.viewerCount || 0}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <button onclick="openEditModal('rooms', '${r.id}')" class="w-full bg-purple-700 hover:bg-purple-600 text-white font-semibold py-1.5 rounded text-xs transition">Edit Room Data</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterUsers() {
+            const query = document.getElementById('user-search').value.toLowerCase();
+            const filtered = allUsersCache.filter(u => 
+                (u.uiD && u.uiD.toLowerCase().includes(query)) || 
+                (u.name && u.name.toLowerCase().includes(query)) || 
+                (u.id && u.id.toLowerCase().includes(query))
+            );
+            renderUsers(filtered);
+        }
+
+        function filterRooms() {
+            const query = document.getElementById('room-search').value.toLowerCase();
+            const filtered = allRoomsCache.filter(r => 
+                (r.roomId && r.roomId.toLowerCase().includes(query)) || 
+                (r.roomName && r.roomName.toLowerCase().includes(query)) || 
+                (r.id && r.id.toLowerCase().includes(query))
+            );
+            renderRooms(filtered);
+        }
+
+        function openEditModal(collectionName, docId) {
+            currentEditDoc.collection = collectionName;
+            currentEditDoc.id = docId;
+            db.collection(collectionName).doc(docId).get().then(doc => {
+                if (doc.exists) {
+                    currentEditDoc.data = doc.data();
+                    const body = document.getElementById('modal-body');
+                    body.innerHTML = "";
+                    document.getElementById('modal-title').innerText = `Edit ${collectionName.slice(0, -1)}: ${docId}`;
+
+                    for (const [key, val] of Object.entries(currentEditDoc.data)) {
+                        if (typeof val === 'object' && val !== null) {
+                            body.innerHTML += `<div><label class="block text-gray-400 font-semibold mb-1">${key} (JSON):</label><textarea id="edit-${key}" class="w-full bg-gray-900 border border-purple-800 rounded p-2 text-white" rows="2">${JSON.stringify(val)}</textarea></div>`;
+                        } else {
+                            body.innerHTML += `<div><label class="block text-gray-400 font-semibold mb-1">${key}:</label><input type="text" id="edit-${key}" value="${val !== undefined ? val : ''}" class="w-full bg-gray-900 border border-purple-800 rounded p-2 text-white"></div>`;
+                        }
+                    }
+                    document.getElementById('edit-modal').classList.remove('hidden');
+                }
+            });
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        function saveModalData() {
+            const updatedData = {};
+            for (const [key, val] of Object.entries(currentEditDoc.data)) {
+                const el = document.getElementById(`edit-${key}`);
+                if (el) {
+                    let newVal = el.value;
+                    if (typeof val === 'number') newVal = Number(newVal);
+                    else if (typeof val === 'boolean') newVal = newVal === 'true';
+                    else if (typeof val === 'object' && val !== null) {
+                        try { newVal = JSON.parse(newVal); } catch(e) {}
+                    }
+                    updatedData[key] = newVal;
+                }
+            }
+
+            db.collection(currentEditDoc.collection).doc(currentEditDoc.id).update(updatedData).then(() => {
+                alert("Updated successfully!");
+                closeEditModal();
+            }).catch(err => alert("Error: " + err.message));
+        }
+
+        function deleteDoc(collection, id) {
+            if (confirm("Are you sure you want to delete this record?")) {
+                db.collection(collection).doc(id).delete().then(() => alert("Deleted successfully!"));
             }
         }
 
         function blockDevice(deviceId) {
-            if (!deviceId || deviceId === 'N/A') {
-                alert("Invalid Device ID!");
-                return;
-            }
+            if (!deviceId || deviceId === 'N/A') { alert("Invalid Device ID!"); return; }
             if (confirm("Are you sure you want to block this device?")) {
                 db.collection("blocked_devices").doc(deviceId).set({
                     blocked_devices: deviceId,
@@ -342,6 +450,7 @@
         }
 
         function sendBroadcast() {
+            const senderId = document.getElementById('broadcast-sender').value;
             const title = document.getElementById('broadcast-title').value;
             const body = document.getElementById('broadcast-body').value;
 
@@ -350,8 +459,9 @@
                 return;
             }
 
-            if (confirm("Are you sure you want to send this message to all users?")) {
+            if (confirm("Are you sure you want to send this broadcast message?")) {
                 db.collection("notifications").add({
+                    senderId: senderId,
                     title: title,
                     body: body,
                     type: "broadcast",
