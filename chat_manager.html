@@ -12,7 +12,7 @@
             </div>
             <div class="p-4 border-t border-purple-700 flex space-x-2">
                 <input type="text" id="admin-reply-input" class="flex-1 bg-gray-800 border border-purple-600 rounded-lg p-2 text-white" placeholder="রিপ্লাই লিখুন...">
-                <button onclick="sendAdminReply()" class="bg-gold-text text-gray-950 font-bold px-6 py-2 rounded-lg">Send</button>
+                <button onclick="sendAdminReply()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-gray-950 font-bold px-6 py-2 rounded-lg transition">Send</button>
             </div>
         </div>
     </div>
@@ -20,44 +20,66 @@
 
 <script>
     let activeChatId = "";
+    let activeUserId = "";
 
     // চ্যাট লিস্ট লোড করার ফাংশন
     function loadChatThreads() {
         const list = document.getElementById('chat-list');
-        // 'chats' কালেকশন থেকে যেখানে 'paglachat_official' আছে
         db.collection("chats")
-          .where("participants", "array-contains", "paglachat_official")
           .orderBy("lastMessageTimestamp", "desc")
           .onSnapshot(snapshot => {
             list.innerHTML = "";
+            if (snapshot.empty) {
+                list.innerHTML = `<p class="p-4 text-gray-400 text-sm">কোনো চ্যাট পাওয়া যায়নি।</p>`;
+                return;
+            }
+            
+            let foundChat = false;
             snapshot.forEach(doc => {
-                const data = doc.data();
-                list.innerHTML += `
-                    <div onclick="openChat('${doc.id}')" class="p-4 border-b border-purple-800 hover:bg-purple-900 cursor-pointer transition">
-                        <h4 class="text-white font-bold text-sm">${data.lastSenderName || 'User'}</h4>
-                        <p class="text-gray-400 text-xs truncate">${data.lastMessage || ''}</p>
-                    </div>
-                `;
+                if (doc.id.includes("paglachat_official")) {
+                    foundChat = true;
+                    const data = doc.data();
+                    // আইডি থেকে ইউজারের আইডি আলাদা করা
+                    const userId = doc.id.replace("paglachat_official_", "").replace("_paglachat_official", "");
+                    
+                    list.innerHTML += `
+                        <div onclick="openChat('${doc.id}', '${userId}')" class="p-4 border-b border-purple-800 hover:bg-purple-900 cursor-pointer transition">
+                            <h4 class="text-white font-bold text-sm">User ID: ${userId}</h4>
+                            <p class="text-gray-400 text-xs truncate">${data.lastMessage || ''}</p>
+                        </div>
+                    `;
+                }
             });
+
+            if (!foundChat) {
+                list.innerHTML = `<p class="p-4 text-gray-400 text-sm">কোনো অফিশিয়াল চ্যাট নেই।</p>`;
+            }
+        }, err => {
+            list.innerHTML = `<p class="p-4 text-red-400 text-sm">Error: ${err.message}</p>`;
         });
     }
 
     // নির্দিষ্ট চ্যাট ওপেন করা
-    function openChat(chatId) {
+    function openChat(chatId, userId) {
         activeChatId = chatId;
+        activeUserId = userId;
         const msgDiv = document.getElementById('chat-messages');
-        msgDiv.innerHTML = "Loading messages...";
+        msgDiv.innerHTML = "<p class='text-gray-400 text-center mt-4'>Loading messages...</p>";
 
         db.collection("chats").doc(chatId).collection("messages")
           .orderBy("timestamp", "asc")
           .onSnapshot(snapshot => {
             msgDiv.innerHTML = "";
+            if (snapshot.empty) {
+                msgDiv.innerHTML = "<p class='text-gray-500 text-center mt-10'>এই চ্যাটে কোনো মেসেজ নেই।</p>";
+                return;
+            }
             snapshot.forEach(doc => {
                 const m = doc.data();
                 const isMine = m.senderId === "paglachat_official";
                 msgDiv.innerHTML += `
                     <div class="${isMine ? 'text-right' : 'text-left'}">
-                        <div class="inline-block px-4 py-2 rounded-lg ${isMine ? 'bg-gold-text text-gray-950' : 'bg-purple-800 text-white'}">
+                        <div class="inline-block px-4 py-2 rounded-lg text-sm mt-1 max-w-[80%] ${isMine ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-950 font-medium' : 'bg-purple-800 text-white'}">
                             ${m.message}
                         </div>
                     </div>
@@ -67,20 +89,24 @@
         });
     }
 
-    // অ্যাডমিন হিসেবে রিপ্লাই পাঠানো
+    // অ্যাডমিন হিসেবে নির্দিষ্ট ইউজারকে রিপ্লাই পাঠানো
     function sendAdminReply() {
-        const text = document.getElementById('admin-reply-input').value;
-        if (!activeChatId || !text) return;
+        const text = document.getElementById('admin-reply-input').value.trim();
+        if (!activeChatId || !activeUserId || !text) return;
 
+        // সাব-লেকশনে মেসেজ যোগ করা
         db.collection("chats").doc(activeChatId).collection("messages").add({
             senderId: "paglachat_official",
+            receiverId: activeUserId,
             message: text,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
+        // মেইন চ্যাট ডকুমেন্ট আপডেট করা যাতে ঠিকমতো নোটিফিকেশন ও লাস্ট মেসেজ দেখায়
         db.collection("chats").doc(activeChatId).update({
             lastMessage: text,
-            lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp()
+            lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            [`unReadCount_${activeUserId}`]: firebase.firestore.FieldValue.increment(1)
         });
 
         document.getElementById('admin-reply-input').value = "";
