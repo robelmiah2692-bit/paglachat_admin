@@ -566,10 +566,8 @@
         }
 
         // --- NEW CHAT MANAGEMENT FUNCTIONS ADDED BELOW ---
-
-        // চ্যাট লিস্ট লোড করার ফাংশন
-let activeChatId = "";
-    let activeUserId = "";
+        let activeChatId = "";
+       let activeUserId = "";
 
     // চ্যাট লিস্ট লোড করার ফাংশন (ইনডেক্স ও ফিল্টার ইরর দূর করার জন্য)
     function loadChatThreads() {
@@ -585,7 +583,6 @@ let activeChatId = "";
             
             let chatsArray = [];
             snapshot.forEach(doc => {
-                // যে ডকুমেন্টগুলোর আইডিতে "paglachat_official" আছে, সেগুলো ফিল্টার করে নেওয়া
                 if (doc.id.includes("paglachat_official")) {
                     const data = doc.data();
                     chatsArray.push({
@@ -608,9 +605,7 @@ let activeChatId = "";
                 const docId = chat.id;
                 const data = chat.data;
                 
-                // সঠিকভাবে দুই রকম ফরম্যাট থেকে ইউজার আইডি বের করা:
-                // ফরম্যাট ১: 978051_paglachat_official -> ইউজার আগে, অফিশিয়াল পরে
-                // ফরম্যাট ২: paglachat_official_102093045 -> অফিশিয়াল আগে, ইউজার পরে
+                // দুই রকম ফরম্যাট থেকে নির্ভুলভাবে ইউজার আইডি বের করা
                 let userId = "";
                 if (docId.startsWith("paglachat_official_")) {
                     userId = docId.replace("paglachat_official_", "");
@@ -650,7 +645,6 @@ let activeChatId = "";
             }
             snapshot.forEach(doc => {
                 const m = doc.data();
-                // এখানে চেক করা হচ্ছে মেসেজটি কি অফিশিয়ালের পাঠানো নাকি ইউজারের পাঠানো
                 const isMine = m.senderId === "paglachat_official";
                 msgDiv.innerHTML += `
                     <div class="${isMine ? 'text-right' : 'text-left'}">
@@ -672,7 +666,7 @@ let activeChatId = "";
         
         if (!activeChatId || !activeUserId || !text) return;
 
-        // সাব-কালেকশনে মেসেজ যোগ করা
+        // সাব-লেকশনে মেসেজ যোগ করা
         db.collection("chats").doc(activeChatId).collection("messages").add({
             senderId: "paglachat_official",
             receiverId: activeUserId,
@@ -680,7 +674,7 @@ let activeChatId = "";
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // মেইন চ্যাট ডকুমেন্ট আপডেট করা যাতে চ্যাট লিস্টে সবার উপরে থাকে এবং লাস্ট মেসেজ আপডেট হয়
+        // মেইন চ্যাট ডকুমেন্ট আপডেট করা
         db.collection("chats").doc(activeChatId).update({
             lastMessage: text,
             lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -689,6 +683,7 @@ let activeChatId = "";
 
         inputElem.value = "";
     }
+        
     </script>
 </body>
 
