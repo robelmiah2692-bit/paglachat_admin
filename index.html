@@ -568,75 +568,127 @@
         // --- NEW CHAT MANAGEMENT FUNCTIONS ADDED BELOW ---
 
         // চ্যাট লিস্ট লোড করার ফাংশন
-        function loadChatThreads() {
-            const list = document.getElementById('chat-list');
-            db.collection("chats")
-              .where("participants", "array-contains", "paglachat_official")
-              .orderBy("lastMessageTimestamp", "desc")
-              .onSnapshot(snapshot => {
-                list.innerHTML = "";
-                if(snapshot.empty){
-                    list.innerHTML = `<p class="p-4 text-gray-400 text-sm">No chats found.</p>`;
-                    return;
-                }
-                snapshot.forEach(doc => {
+let activeChatId = "";
+    let activeUserId = "";
+
+    // চ্যাট লিস্ট লোড করার ফাংশন (ইনডেক্স ও ফিল্টার ইরর দূর করার জন্য)
+    function loadChatThreads() {
+        const list = document.getElementById('chat-list');
+        if (!list) return;
+
+        db.collection("chats").onSnapshot(snapshot => {
+            list.innerHTML = "";
+            if (snapshot.empty) {
+                list.innerHTML = `<p class="p-4 text-gray-400 text-sm">কোনো চ্যাট পাওয়া যায়নি।</p>`;
+                return;
+            }
+            
+            let chatsArray = [];
+            snapshot.forEach(doc => {
+                // যে ডকুমেন্টগুলোর আইডিতে "paglachat_official" আছে, সেগুলো ফিল্টার করে নেওয়া
+                if (doc.id.includes("paglachat_official")) {
                     const data = doc.data();
-                    list.innerHTML += `
-                        <div onclick="openChat('${doc.id}')" class="p-4 border-b border-purple-800 hover:bg-purple-900 cursor-pointer transition">
-                            <h4 class="text-white font-bold text-sm">${data.lastSenderName || 'User'}</h4>
-                            <p class="text-gray-400 text-xs truncate">${data.lastMessage || ''}</p>
+                    chatsArray.push({
+                        id: doc.id,
+                        data: data,
+                        timestamp: data.lastMessageTimestamp ? data.lastMessageTimestamp.toMillis() : 0
+                    });
+                }
+            });
+
+            if (chatsArray.length === 0) {
+                list.innerHTML = `<p class="p-4 text-gray-400 text-sm">কোনো অফিশিয়াল চ্যাট নেই।</p>`;
+                return;
+            }
+
+            // লেটেস্ট মেসেজ অনুযায়ী সাজানো (নতুনগুলো উপরে থাকবে)
+            chatsArray.sort((a, b) => b.timestamp - a.timestamp);
+
+            chatsArray.forEach(chat => {
+                const docId = chat.id;
+                const data = chat.data;
+                
+                // সঠিকভাবে দুই রকম ফরম্যাট থেকে ইউজার আইডি বের করা:
+                // ফরম্যাট ১: 978051_paglachat_official -> ইউজার আগে, অফিশিয়াল পরে
+                // ফরম্যাট ২: paglachat_official_102093045 -> অফিশিয়াল আগে, ইউজার পরে
+                let userId = "";
+                if (docId.startsWith("paglachat_official_")) {
+                    userId = docId.replace("paglachat_official_", "");
+                } else if (docId.endsWith("_paglachat_official")) {
+                    userId = docId.replace("_paglachat_official", "");
+                }
+                
+                list.innerHTML += `
+                    <div onclick="openChat('${docId}', '${userId}')" class="p-4 border-b border-purple-800 hover:bg-purple-900 cursor-pointer transition">
+                        <h4 class="text-white font-bold text-sm">User ID: ${userId}</h4>
+                        <p class="text-gray-400 text-xs truncate">${data.lastMessage || ''}</p>
+                    </div>
+                `;
+            });
+        }, err => {
+            console.error("Error loading chats:", err);
+            list.innerHTML = `<p class="p-4 text-red-400 text-sm">Error loading chats.</p>`;
+        });
+    }
+
+    // নির্দিষ্ট চ্যাট ওপেন করা এবং লাইভ মেসেজ দেখা
+    function openChat(chatId, userId) {
+        activeChatId = chatId;
+        activeUserId = userId;
+        const msgDiv = document.getElementById('chat-messages');
+        if (!msgDiv) return;
+
+        msgDiv.innerHTML = "<p class='text-gray-400 text-center mt-4'>Loading messages...</p>";
+
+        db.collection("chats").doc(chatId).collection("messages")
+          .orderBy("timestamp", "asc")
+          .onSnapshot(snapshot => {
+            msgDiv.innerHTML = "";
+            if (snapshot.empty) {
+                msgDiv.innerHTML = "<p class='text-gray-500 text-center mt-10'>এই চ্যাটে কোনো মেসেজ নেই।</p>";
+                return;
+            }
+            snapshot.forEach(doc => {
+                const m = doc.data();
+                // এখানে চেক করা হচ্ছে মেসেজটি কি অফিশিয়ালের পাঠানো নাকি ইউজারের পাঠানো
+                const isMine = m.senderId === "paglachat_official";
+                msgDiv.innerHTML += `
+                    <div class="${isMine ? 'text-right' : 'text-left'}">
+                        <div class="inline-block px-4 py-2 rounded-lg text-sm mt-1 max-w-[80%] ${isMine ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-950 font-medium' : 'bg-purple-800 text-white'}">
+                            ${m.message}
                         </div>
-                    `;
-                });
-            }, err => {
-                list.innerHTML = `<p class="p-4 text-red-400 text-sm">Error loading chats.</p>`;
+                    </div>
+                `;
             });
-        }
+            msgDiv.scrollTop = msgDiv.scrollHeight;
+        });
+    }
 
-        // নির্দিষ্ট চ্যাট ওপেন করা
-        function openChat(chatId) {
-            activeChatId = chatId;
-            const msgDiv = document.getElementById('chat-messages');
-            msgDiv.innerHTML = "<p class='text-gray-400 text-center mt-4'>Loading messages...</p>";
+    // অ্যাডমিন হিসেবে নির্দিষ্ট ইউজারকে লাইভ রিপ্লাই পাঠানো
+    function sendAdminReply() {
+        const inputElem = document.getElementById('admin-reply-input');
+        if (!inputElem) return;
+        const text = inputElem.value.trim();
+        
+        if (!activeChatId || !activeUserId || !text) return;
 
-            db.collection("chats").doc(chatId).collection("messages")
-              .orderBy("timestamp", "asc")
-              .onSnapshot(snapshot => {
-                msgDiv.innerHTML = "";
-                snapshot.forEach(doc => {
-                    const m = doc.data();
-                    const isMine = m.senderId === "paglachat_official";
-                    msgDiv.innerHTML += `
-                        <div class="${isMine ? 'text-right' : 'text-left'}">
-                            <div class="inline-block px-4 py-2 rounded-lg text-sm mt-1 max-w-[80%] ${isMine ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-950 font-medium' : 'bg-purple-800 text-white'}">
-                                ${m.message}
-                            </div>
-                        </div>
-                    `;
-                });
-                msgDiv.scrollTop = msgDiv.scrollHeight;
-            });
-        }
+        // সাব-কালেকশনে মেসেজ যোগ করা
+        db.collection("chats").doc(activeChatId).collection("messages").add({
+            senderId: "paglachat_official",
+            receiverId: activeUserId,
+            message: text,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
 
-        // অ্যাডমিন হিসেবে রিপ্লাই পাঠানো
-        function sendAdminReply() {
-            const text = document.getElementById('admin-reply-input').value;
-            if (!activeChatId || !text) return;
+        // মেইন চ্যাট ডকুমেন্ট আপডেট করা যাতে চ্যাট লিস্টে সবার উপরে থাকে এবং লাস্ট মেসেজ আপডেট হয়
+        db.collection("chats").doc(activeChatId).update({
+            lastMessage: text,
+            lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            [`unReadCount_${activeUserId}`]: firebase.firestore.FieldValue.increment(1)
+        });
 
-            db.collection("chats").doc(activeChatId).collection("messages").add({
-                senderId: "paglachat_official",
-                message: text,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            db.collection("chats").doc(activeChatId).update({
-                lastMessage: text,
-                lastSenderName: "PaglaChat Official",
-                lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            document.getElementById('admin-reply-input').value = "";
-        }
+        inputElem.value = "";
+    }
     </script>
 </body>
 
