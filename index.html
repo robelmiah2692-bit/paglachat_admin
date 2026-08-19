@@ -147,7 +147,7 @@
                     </div>
                 </div>
 
-             <!-- TAB 6: CHAT MANAGEMENT (Independent Floating Mini Chat Window) -->
+<!-- TAB 6: CHAT MANAGEMENT (Forced Working Mini Chat Window) -->
 <div id="tab-chat" class="tab-content hidden space-y-4">
     
     <!-- ১. সম্পূর্ণ স্বাধীন ইউজার লিস্ট উইন্ডো -->
@@ -158,13 +158,13 @@
         </div>
     </div>
 
-    <!-- ২. একদম ছোট, আলাদা ভাসমান মিনি চ্যাট বক্স (Floating Mini Chat Window) -->
-    <div id="mini-chat-modal" class="fixed bottom-6 right-6 w-72 sm:w-80 h-[380px] bg-gray-950 border-2 border-yellow-500 rounded-xl shadow-2xl flex flex-col hidden z-50 overflow-hidden">
+    <!-- ২. একদম ছোট, আলাদা ভাসমান মিনি চ্যাট বক্স (সরাসরি style="display: none;" দেওয়া হয়েছে) -->
+    <div id="mini-chat-modal" style="display: none;" class="fixed bottom-6 right-6 w-72 sm:w-80 h-[380px] bg-gray-950 border-2 border-yellow-500 rounded-xl shadow-2xl flex-col z-50 overflow-hidden">
         
         <!-- মিনি চ্যাট হেডার -->
         <div class="bg-gray-900 border-b border-purple-700 p-2.5 flex justify-between items-center flex-shrink-0">
             <h4 id="chat-header-title" class="text-yellow-500 font-bold text-xs sm:text-sm truncate">Chat Room</h4>
-            <button onclick="closeMiniChat()" class="text-gray-400 hover:text-red-400 font-bold text-base px-2">&times;</button>
+            <button onclick="closeMiniChat()" class="text-gray-400 hover:text-red-400 font-bold text-base px-2 cursor-pointer">&times;</button>
         </div>
         
         <!-- মেসেজ এরিয়া: ইউজারের মেসেজগুলো এখানে দেখাবে এবং স্ক্রোল হবে -->
@@ -172,10 +172,10 @@
             <p class="text-gray-500 text-center my-auto">মেসেজ লোড হচ্ছে...</p>
         </div>
         
-        <!-- ইনপুট বক্স: এটি সবসময় এই ছোট উইন্ডোর একদম নিচেই আটকে থাকবে -->
+        <!-- ইনপুট বক্স: এটি সবসময় এই ছোট উইন্ডোর একদম নিচেই আটকে থাকবে -->
         <div class="p-2 border-t border-purple-700 bg-gray-900 flex space-x-1.5 flex-shrink-0">
             <input type="text" id="admin-reply-input" class="flex-1 bg-gray-800 border border-purple-600 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-yellow-500" placeholder="রিপ্লাই লিখুন...">
-            <button onclick="sendAdminReply()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-gray-950 font-bold px-3 py-1.5 rounded-lg transition text-xs shadow-md">Send</button>
+            <button onclick="sendAdminReply()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-gray-950 font-bold px-3 py-1.5 rounded-lg transition text-xs shadow-md cursor-pointer">Send</button>
         </div>
 
     </div>
