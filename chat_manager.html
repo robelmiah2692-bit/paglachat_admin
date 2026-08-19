@@ -1,4 +1,4 @@
-<!-- TAB 6: CHAT MANAGEMENT (Independent Floating Mini Chat Window) -->
+<!-- TAB 6: CHAT MANAGEMENT (Forced Working Mini Chat Window) -->
 <div id="tab-chat" class="tab-content hidden space-y-4">
     
     <!-- ১. সম্পূর্ণ স্বাধীন ইউজার লিস্ট উইন্ডো -->
@@ -9,13 +9,13 @@
         </div>
     </div>
 
-    <!-- ২. একদম ছোট, আলাদা ভাসমান মিনি চ্যাট বক্স (Floating Mini Chat Window) -->
-    <div id="mini-chat-modal" class="fixed bottom-6 right-6 w-72 sm:w-80 h-[380px] bg-gray-950 border-2 border-yellow-500 rounded-xl shadow-2xl flex flex-col hidden z-50 overflow-hidden">
+    <!-- ২. একদম ছোট, আলাদা ভাসমান মিনি চ্যাট বক্স (সরাসরি style="display: none;" দেওয়া হয়েছে) -->
+    <div id="mini-chat-modal" style="display: none;" class="fixed bottom-6 right-6 w-72 sm:w-80 h-[380px] bg-gray-950 border-2 border-yellow-500 rounded-xl shadow-2xl flex-col z-50 overflow-hidden">
         
         <!-- মিনি চ্যাট হেডার -->
         <div class="bg-gray-900 border-b border-purple-700 p-2.5 flex justify-between items-center flex-shrink-0">
             <h4 id="chat-header-title" class="text-yellow-500 font-bold text-xs sm:text-sm truncate">Chat Room</h4>
-            <button onclick="closeMiniChat()" class="text-gray-400 hover:text-red-400 font-bold text-base px-2">&times;</button>
+            <button onclick="closeMiniChat()" class="text-gray-400 hover:text-red-400 font-bold text-base px-2 cursor-pointer">&times;</button>
         </div>
         
         <!-- মেসেজ এরিয়া: ইউজারের মেসেজগুলো এখানে দেখাবে এবং স্ক্রোল হবে -->
@@ -23,10 +23,10 @@
             <p class="text-gray-500 text-center my-auto">মেসেজ লোড হচ্ছে...</p>
         </div>
         
-        <!-- ইনপুট বক্স: এটি সবসময় এই ছোট উইন্ডোর একদম নিচেই আটকে থাকবে -->
+        <!-- ইনপুট বক্স: এটি সবসময় এই ছোট উইন্ডোর একদম নিচেই আটকে থাকবে -->
         <div class="p-2 border-t border-purple-700 bg-gray-900 flex space-x-1.5 flex-shrink-0">
             <input type="text" id="admin-reply-input" class="flex-1 bg-gray-800 border border-purple-600 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-yellow-500" placeholder="রিপ্লাই লিখুন...">
-            <button onclick="sendAdminReply()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-gray-950 font-bold px-3 py-1.5 rounded-lg transition text-xs shadow-md">Send</button>
+            <button onclick="sendAdminReply()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-gray-950 font-bold px-3 py-1.5 rounded-lg transition text-xs shadow-md cursor-pointer">Send</button>
         </div>
 
     </div>
@@ -46,7 +46,6 @@
         if (!list) return;
 
         db.collection("chats")
-          .orderBy("lastMessageTimestamp", "desc")
           .onSnapshot(snapshot => {
             list.innerHTML = "";
             if (snapshot.empty) {
@@ -54,41 +53,41 @@
                 return;
             }
             
-            let foundChat = false;
             snapshot.forEach(doc => {
-                if (doc.id.includes("paglachat_official")) {
-                    foundChat = true;
-                    const data = doc.data();
-                    const userId = doc.id.replace("paglachat_official_", "").replace("_paglachat_official", "");
-                    
-                    list.innerHTML += `
-                        <div onclick="openChat('${doc.id}', '${userId}')" class="p-3 bg-gray-950 border border-purple-900/60 rounded-lg hover:bg-purple-900/40 cursor-pointer transition flex justify-between items-center my-1">
-                            <div>
-                                <h4 class="text-white font-bold text-sm">User ID: ${userId}</h4>
-                                <p class="text-gray-400 text-xs truncate mt-0.5 max-w-[220px] sm:max-w-md">${data.lastMessage || 'কোনো মেসেজ নেই'}</p>
-                            </div>
-                            <span class="text-xs bg-purple-800 text-yellow-400 px-2 py-1 rounded">চ্যাট করুন</span>
-                        </div>
-                    `;
-                }
-            });
+                const chatId = doc.id;
+                const data = doc.data();
+                const userId = chatId.replace("paglachat_official_", "").replace("_paglachat_official", "");
 
-            if (!foundChat) {
-                list.innerHTML = `<p class="p-4 text-gray-400 text-sm">কোনো অফিশিয়াল চ্যাট নেই।</p>`;
-            }
+                list.innerHTML += `
+                    <div onclick="openChat('${chatId}', '${userId}')" class="p-3 bg-gray-950 border border-purple-900/60 rounded-lg hover:bg-purple-900/40 cursor-pointer transition flex justify-between items-center my-1">
+                        <div>
+                            <h4 class="text-white font-bold text-sm">User ID: ${userId}</h4>
+                            <p class="text-gray-400 text-xs truncate mt-0.5 max-w-[200px] sm:max-w-xs">${data.lastMessage || 'কোনো মেসেজ নেই'}</p>
+                        </div>
+                        <span class="text-xs bg-purple-800 text-yellow-400 px-2 py-1 rounded">চ্যাট করুন</span>
+                    </div>
+                `;
+            });
         }, err => {
             list.innerHTML = `<p class="p-4 text-red-400 text-sm">Error: ${err.message}</p>`;
         });
     }
 
-    // ইউজার লিস্টে ক্লিক করলে ছোট মিনি চ্যাট বক্স পপআপ আকারে ওপেন হবে
+    // ইউজার লিস্টে ক্লিক করলে সরাসরি ছোট মিনি চ্যাট বক্স পপআপ আকারে ওপেন হবে
     function openChat(chatId, userId) {
         activeChatId = chatId;
         activeUserId = userId;
         
-        // ফ্লোটিং মিনি চ্যাট বক্স দৃশ্যমান করা
-        document.getElementById('mini-chat-modal').classList.remove('hidden');
-        document.getElementById('chat-header-title').innerText = `User ID: ${userId}`;
+        // ফ্লোটিং মিনি চ্যাট বক্স সরাসরি ডিসপ্লে ফ্লেক্স করে দৃশ্যমান করা হলো
+        const modal = document.getElementById('mini-chat-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+        
+        const headerTitle = document.getElementById('chat-header-title');
+        if (headerTitle) {
+            headerTitle.innerText = `User ID: ${userId}`;
+        }
         
         const msgDiv = document.getElementById('chat-messages');
         if (!msgDiv) return;
@@ -114,14 +113,16 @@
                     </div>
                 `;
             });
-            // মেসেজ লোড হওয়ার পর স্ক্রল সবসময় ইনপুট বক্সের ওপরে থাকবে
             msgDiv.scrollTop = msgDiv.scrollHeight;
         });
     }
 
-    // মিনি চ্যাট বক্স ক্লোজ করার ফাংশন
+    // মিনি চ্যাট বক্স বন্ধ করার ফাংশন
     function closeMiniChat() {
-        document.getElementById('mini-chat-modal').classList.add('hidden');
+        const modal = document.getElementById('mini-chat-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
         activeChatId = "";
         activeUserId = "";
     }
@@ -129,6 +130,8 @@
     // অ্যাডমিন হিসেবে রিপ্লাই পাঠানো
     function sendAdminReply() {
         const inputField = document.getElementById('admin-reply-input');
+        if (!inputField) return;
+        
         const text = inputField.value.trim();
         if (!activeChatId || !activeUserId || !text) return;
 
