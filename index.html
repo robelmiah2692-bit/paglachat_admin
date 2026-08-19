@@ -568,41 +568,53 @@
         // --- NEW CHAT MANAGEMENT FUNCTIONS ADDED BELOW ---
 
         // চ্যাট লিস্ট লোড করার ফাংশন
-        let activeChatId = "";
+       let activeChatId = "";
         let activeUserId = "";
 
-        // চ্যাট লিস্ট লোড করার ফাংশন
+        // চ্যাট লিস্ট লোড করার ফাংশন (ইনডেক্স ইরর এড়াতে জাভাস্ক্রিপ্ট দিয়ে ফিল্টার ও সর্ট করা হয়েছে)
         function loadChatThreads() {
             const list = document.getElementById('chat-list');
-            db.collection("chats")
-              .orderBy("lastMessageTimestamp", "desc")
-              .onSnapshot(snapshot => {
+            db.collection("chats").onSnapshot(snapshot => {
                 list.innerHTML = "";
-                if(snapshot.empty){
+                if (snapshot.empty) {
                     list.innerHTML = `<p class="p-4 text-gray-400 text-sm">No chats found.</p>`;
                     return;
                 }
                 
-                let foundChat = false;
+                let chatsArray = [];
                 snapshot.forEach(doc => {
-                    // শুধু অফিশিয়াল চ্যাট ডকুমেন্টগুলো ফিল্টার করবে
+                    // শুধু অফিশিয়াল চ্যাটগুলো ফিল্টার করা
                     if (doc.id.includes("paglachat_official")) {
-                        foundChat = true;
                         const data = doc.data();
-                        const userId = doc.id.replace("paglachat_official_", "").replace("_paglachat_official", "");
-                        
-                        list.innerHTML += `
-                            <div onclick="openChat('${doc.id}', '${userId}')" class="p-4 border-b border-purple-800 hover:bg-purple-900 cursor-pointer transition">
-                                <h4 class="text-white font-bold text-sm">User ID: ${userId}</h4>
-                                <p class="text-gray-400 text-xs truncate">${data.lastMessage || ''}</p>
-                            </div>
-                        `;
+                        chatsArray.push({
+                            id: doc.id,
+                            data: data,
+                            timestamp: data.lastMessageTimestamp ? data.lastMessageTimestamp.toMillis() : 0
+                        });
                     }
                 });
 
-                if (!foundChat) {
+                if (chatsArray.length === 0) {
                     list.innerHTML = `<p class="p-4 text-gray-400 text-sm">No official chats found.</p>`;
+                    return;
                 }
+
+                // লেটেস্ট মেসেজ অনুযায়ী সাজানো (নতুনগুলো উপরে থাকবে)
+                chatsArray.sort((a, b) => b.timestamp - a.timestamp);
+
+                chatsArray.forEach(chat => {
+                    const docId = chat.id;
+                    const data = chat.data;
+                    // যেকোনো ফরম্যাটের আইডি থেকে ইউজারের আইডি বের করা
+                    const userId = docId.replace("paglachat_official_", "").replace("_paglachat_official", "");
+                    
+                    list.innerHTML += `
+                        <div onclick="openChat('${docId}', '${userId}')" class="p-4 border-b border-purple-800 hover:bg-purple-900 cursor-pointer transition">
+                            <h4 class="text-white font-bold text-sm">User ID: ${userId}</h4>
+                            <p class="text-gray-400 text-xs truncate">${data.lastMessage || ''}</p>
+                        </div>
+                    `;
+                });
             }, err => {
                 list.innerHTML = `<p class="p-4 text-red-400 text-sm">Error: ${err.message}</p>`;
             });
